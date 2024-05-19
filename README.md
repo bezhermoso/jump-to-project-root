@@ -62,5 +62,5 @@ export JUMP_TO_PROJECT_ROOT_FIND_MARKERS=(
 This tool uses your system's `find` command internally to find out whether a directory contains any of the markers. Each
 marker must be specified in a way that is valid for the `-name` predicate. See `man find`.
 
-The tool does not look for markers recursively: markers that could match files in subdirectories will not work e.g. `config/*.yaml`
+The tool does not look for markers recursively: markers that match files in subdirectories will not work e.g. `config/*.yaml`
 
