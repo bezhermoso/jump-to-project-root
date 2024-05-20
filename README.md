@@ -47,7 +47,7 @@ You can override the entire list by defining an `JUMP_TO_PROJECT_ROOT_GLOB_MARKE
 
 ```sh
 # Must be an array
-export JUMP_TO_PROJECT_ROOT_FIND_MARKERS=(
+export JUMP_TO_PROJECT_ROOT_GLOB_MARKERS=(
   ".git"
   "env.yaml"
   "index.php"
