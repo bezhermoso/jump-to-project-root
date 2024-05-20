@@ -36,47 +36,66 @@ local project_root_marker_globs_str="(${(j:|:)project_root_markers})"
 # Function that determines whether a directory is a project root.
 # Argument #1: Directory path
 # Argument #2: Glob pattern to match project-root markers
-function _is-a-project-root {
+function _find-project-root-markers {
   local pathname="$1"
   local glob_str="$2"
+
+  $reply=()
 
   if [[ ! -d $pathname ]]; then
     >&2 echo "Not a directory: $pathname"
     return 1
   fi
 
-  # Test the glob on $pathname:
-  # "/${~glob_str}" expands glob_str into an actual glob pattern
-  # (#qN) sets the glob modifier "N" which only match existing files
-  if [[ -n $glob_str && -n $pathname/${~glob_str}(#qN) ]]; then
-    return 0
+
+  if [[ -n $glob_str ]]; then
+    # Test the glob on $pathname:
+    # "/${~glob_str}" expands glob_str into an actual glob pattern
+    # (#qN) sets the glob modifier "N" which only match existing files
+    reply=(${pathname}/${~glob_str}(#qN))
   fi
 
-  return 1
+  (( $#reply ))
 }
 
-local current_path=$(pwd)
+local pathname=$(pwd)
 
-# Start checking the parent directory
-local pathname=$(command realpath $current_path/..)
+local starting_pathname=$pathname
+local markers=()
 
-# Continue looking until we've found a project-root
-while ! _is-a-project-root "$pathname" "$project_root_marker_globs_str"; do
-  pathname=$(command realpath $pathname/..)
-  if [[ $pathname == "/" ]]; then
-    # Stop going up, there's nowhere to go!
-    break
-  fi
-done
+while
+  local pathname=$(command realpath $pathname/..)
+  _find-project-root-markers "$pathname" "$project_root_marker_globs_str"
+  markers=($reply)
+  [[ -z $markers && $pathname != "/" ]]
+do :; done
 
-if [[ $current_path == $pathname || $pathname == "/" ]]; then
-  if _is-a-project-root $current_path; then
-    >&2 echo "Already at project root & it doesn't belong in another project"
-  else
-  >&2 echo "Current directory does not belong in a project"
+# while ! _is-a-project-root "$pathname" "$project_root_marker_globs_str"; do
+#   pathname=$(command realpath $pathname/..)
+#   if [[ $pathname == "/" ]]; then
+#     # Stop going up, there's nowhere to go!
+#     break
+#   fi
+# done
+#
+if [[ $pathname == "/" ]]; then
+  # We reached the root directory. Its very likely we never found a parent root project.
+  # However the root directory itself may contain one of the markers. In such case we must respect that!
+  if [[ -z $markers ]]; then
+    >&2 echo "Current directory does not belong in another project"
+    return 1
   fi
 fi
 
+local other_markers_str=""
+if (( ${#markers} > 1 )); then
+  ((other_markers = ${#markers} - 1))
+  other_markers_str=" and $other_markers other marker(s)"
+else
+  other_markers_str=""
+fi
+
+echo "Found ${markers[1]:t}${other_markers_str} in $pathname"
 if (( $+commands[pushd] )); then
   pushd $pathname
 else
