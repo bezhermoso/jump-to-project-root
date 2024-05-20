@@ -2,24 +2,25 @@
 
 Simple ZSH utility to jump back to the nearest project root.
 
-A project root is defined as a directory that contain one or many files that are "markers" of a project root. This is the list of markers used by default:
-
-If you are already at a project root, `jump-to-project-root` will bring you to the next nearest project root.
+A project root is defined as a directory that contain one or many files that are "markers" of a project root. This is the default list of glob patterns used to identify markers:
 
 ```
 .git
 Makefile
-go.mod
+go.(mod|sum)
 main.go
-composer.json
-package.json
+composer.(json|lock)
+package.(json|lock)
 Cargo.toml
 .env
 Gemfile
 Dockerfile
-docker-compose.y*ml
+docker-compose.y(a|)ml
 README.md
 ```
+
+If you are already at a project root, `jump-to-project-root` will bring you to the next nearest project root.
+
 ## Setup
 
 Clone this repository:
@@ -42,25 +43,24 @@ alias jr=jump-to-project-root
 
 ## How to override the project marker list
 
-You can override the entire list by defining an `JUMP_TO_PROJECT_ROOT_FIND_MARKERS` environment variable e.g.
+You can override the entire list by defining an `JUMP_TO_PROJECT_ROOT_GLOB_MARKERS` environment variable e.g.
 
 ```sh
 # Must be an array
 export JUMP_TO_PROJECT_ROOT_FIND_MARKERS=(
   ".git"
-  "README.md"
-  "composer.json"
   "env.yaml"
   "index.php"
-  "docker-compose.y*ml"
+  "docker-compose.y(a|)ml"
   "webpack.config.js"
+  "composer.(json|lock)"
+  "package.(json|lock)"
+  "README.md"
 )
 ```
 
-### Marker file spec
+### Marker spec
 
-This tool uses your system's `find` command internally to find out whether a directory contains any of the markers. Each
-marker must be specified in a way that is valid for the `-name` predicate. See `man find`.
-
-The tool does not look for markers recursively: markers that match files in subdirectories will not work e.g. `config/*.yaml`
+This tool uses Zsh's globbing capabilities to determine whether a directory contains any of the markers. Each entry in
+`JUMP_TO_PROJECT_ROOT_GLOB_MARKERS` must be valid glob patterns. See `man zshexpn` for more details.
 

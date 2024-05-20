@@ -10,18 +10,17 @@
 # The default list of project-root markers. Directories that contain them are considered the root of a project.
 # Each item in this list is a glob pattern string.
 local default_project_root_glob_markers=(
-    ".git"
-    "Makefile"
-    "go.mod"
-    "main.go"
-    "composer.json"
-    "package.json"
-    "Cargo.toml"
-    ".env"
-    "Gemfile"
-    "Dockerfile"
-    "docker-compose.y(a|)ml"
-    "README.md"
+  "Makefile"
+  "go.(mod|sum)"
+  "main.go"
+  "composer.(json|lock)"
+  "package.(json|lock)"
+  "Cargo.toml"
+  ".env"
+  "Gemfile"
+  "Dockerfile"
+  "docker-compose.y(a|)ml"
+  "README.md"
 )
 
 local project_root_markers=($default_project_root_glob_markers)
