@@ -1,8 +1,8 @@
-# jump-to-git-root
+# 🐇 jump-to-project-root
 
 Simple ZSH utility to jump back to the nearest project root.
 
-A project root is defined as a directory that contain one or many files that are "markers" of a project root. This is the default list of glob patterns used to identify markers:
+A project root is defined as a directory that contain one or many "markers" of a project root. This is the default list of glob patterns used to identify markers:
 
 ```
 .git
@@ -62,5 +62,8 @@ export JUMP_TO_PROJECT_ROOT_FIND_MARKERS=(
 ### Marker spec
 
 This tool uses Zsh's globbing capabilities to determine whether a directory contains any of the markers. Each entry in
-`JUMP_TO_PROJECT_ROOT_GLOB_MARKERS` must be valid glob patterns. See `man zshexpn` for more details.
+`JUMP_TO_PROJECT_ROOT_GLOB_MARKERS` must be valid glob pattern. It is **case-sensitive** e.g. `README.md` will _not_
+match `readme.md`
+
+See `man zshexpn` for details on how Zsh glob patterns work.
 
