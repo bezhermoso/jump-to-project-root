@@ -2,13 +2,14 @@
 
 # Jump to the project's root
 # A project is defined as containing markers of a project e.g. go.mod, composer.json, package.json, Makefile, .git/, etc.
-# This can be configured via the JUMP_TO_PROJECT_ROOT_FIND_MARKERS=(...) list.
+# This can be configured via the JUMP_TO_PROJECT_ROOT_GLOB_MARKERS=(...) list.
 # If already in a project root, pierce through it to the next nearest parent project.
 # Authors:
 #   Bez Hermoso (c) 2024
-#
-if [[ -z $JUMP_TO_PROJECT_ROOT_FIND_MARKERS ]]; then
-  export JUMP_TO_PROJECT_ROOT_FIND_MARKERS=(
+
+# The default list of project-root markers. Directories that contain them are considered the root of a project.
+# Each item in this list is a glob pattern string.
+local default_project_root_glob_markers=(
     ".git"
     "Makefile"
     "go.mod"
@@ -19,48 +20,60 @@ if [[ -z $JUMP_TO_PROJECT_ROOT_FIND_MARKERS ]]; then
     ".env"
     "Gemfile"
     "Dockerfile"
-    "docker-compose.y*ml"
+    "docker-compose.y(a|)ml"
     "README.md"
-  )
+)
+
+local project_root_markers=($default_project_root_glob_markers)
+
+# Use $JUMP_TO_PROJECT_ROOT_GLOB_MARKERS if defined. Otherwise, use the default marker list:
+if [[ -n $JUMP_TO_PROJECT_ROOT_GLOB_MARKERS ]]; then
+  project_root_markers=($JUMP_TO_PROJECT_ROOT_GLOB_MARKERS)
 fi
 
+# Join the glob patterns into a single one with OR predicate e.g. (pattern1|pattern2|...|patternN)
+local project_root_marker_globs_str="(${(j:|:)project_root_markers})"
+# Function that determines whether a directory is a project root.
+# Argument #1: Directory path
+# Argument #2: Glob pattern to match project-root markers
 function _is-a-project-root {
-  pathname="$@"
-
-  if [[ $pathname == "/" ]]; then
-    return 0
-  fi
-
+  local pathname="$1"
+  local glob_str="$2"
 
   if [[ ! -d $pathname ]]; then
     >&2 echo "Not a directory: $pathname"
     return 1
   fi
 
-  declare -a name_predicates
-  name_predicates+=("-name" $JUMP_TO_PROJECT_ROOT_FIND_MARKERS[1])
-  for pattern in ${JUMP_TO_PROJECT_ROOT_FIND_MARKERS[@]:1}; do name_predicates+=("-o" "-name" "$pattern")
-  done
-
-  if { find $pathname -maxdepth 1 ${name_predicates[@]} -print -quit | grep -q . }; then
+  # Test the glob on $pathname:
+  # "/${~glob_str}" expands glob_str into an actual glob pattern
+  # (#qN) sets the glob modifier "N" which only match existing files
+  if [[ -n $glob_str && -n $pathname/${~glob_str}(#qN) ]]; then
     return 0
   fi
+
   return 1
 }
 
-current_path=$(pwd)
+local current_path=$(pwd)
 
-pathname=$(command realpath $current_path/..)
+# Start checking the parent directory
+local pathname=$(command realpath $current_path/..)
 
-while ! _is-a-project-root "$pathname"; do
+# Continue looking until we've found a project-root
+while ! _is-a-project-root "$pathname" "$project_root_marker_globs_str"; do
   pathname=$(command realpath $pathname/..)
+  if [[ $pathname == "/" ]]; then
+    # Stop going up, there's nowhere to go!
+    break
+  fi
 done
 
-if [[ $current_path == $pathname ]] || [[ $pathname == "/" ]]; then
+if [[ $current_path == $pathname || $pathname == "/" ]]; then
   if _is-a-project-root $current_path; then
-    echo "Already at project root & it doesn't belong in another project"
+    >&2 echo "Already at project root & it doesn't belong in another project"
   else
-  echo "Current directory does not belong in a project"
+  >&2 echo "Current directory does not belong in a project"
   fi
 fi
 
